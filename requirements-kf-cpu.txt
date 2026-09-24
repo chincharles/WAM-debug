@@ -8,3 +8,6 @@ einops==0.8.1
 rich==15.0.0
 numpy==2.5.3
 pillow==12.3.0
+
+# Real checkpoint format conversion tests
+safetensors==0.5.3

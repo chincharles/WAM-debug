@@ -230,7 +230,7 @@ P1/P2（F4、K16、适配器联合 RL、共享未来、自适应调度、连续�
 
 ### 显式下载基础模型（自己训练 C0）
 
-下载入口 `scripts/kf/download_models.py` 无需 torch，可在联网下载机执行。使用 Hugging Face 的 snapshot_download，第一次解析并锁定完整仓库 revision，重跑沿用锁并续传。会检查视频 DiT index 中全部分片、VAE、文本编码器、tokenizer 文件，写入 SHA256 清单；离线 `--verify` 检查文件是否变化。检查文件完整性不等于模型语义兼容，后续仍需真实加载。勿同时启动多个下载进程写同一目录。
+下载入口 `scripts/kf/download_models.py` 的计划模式无需 torch；实际下载后的格式转换需要 torch 和 safetensors，可在具备这些依赖的联网 CPU 机器执行。使用 Hugging Face 的 snapshot_download，第一次解析并锁定完整仓库 revision，重跑沿用锁并续传。会检查视频 DiT index 中全部分片、VAE、文本编码器、tokenizer 文件，写入 SHA256 清单；离线 `--verify` 检查文件是否变化。检查文件完整性不等于模型语义兼容，后续仍需真实加载。勿同时启动多个下载进程写同一目录。
 
 ```bash
 # 在安装好的环境、仓库根目录执行；此命令为本次准备选择独立路径。
@@ -248,7 +248,9 @@ python scripts/kf/cache_text.py \
 SIMWAM_KF_OFFLINE=1 bash scripts/model_prepare.sh
 ```
 
-下载源为 `Wan-AI/Wan2.2-TI2V-5B` 的视频 DiT、`DiffSynth-Studio/Wan-Series-Converted-Safetensors` 的 VAE/umT5，以及上游 loader 指定的 `Wan-AI/Wan2.1-T2V-1.3B/google/umt5-xxl` tokenizer 子目录；不会下载整个 Wan2.1 视频模型。默认需要下载数十 GB，另需缓存和初始化转换的存储/内存余量。下载进程显式解除 `HF_HUB_OFFLINE`，不修改父 shell；训练仍离线。可在另一联网机器下载并连同 `simwam-models.lock.json` 整体传到服务器。若使用自有 HF endpoint，在执行下载前设置 `HF_ENDPOINT`。未在本地下载这些大权重。
+下载源仅使用 Wan 官方 Hugging Face 仓库：`Wan-AI/Wan2.2-TI2V-5B` 的视频 DiT、`Wan2.2_VAE.pth` 和 `models_t5_umt5-xxl-enc-bf16.pth`，以及 `Wan-AI/Wan2.1-T2V-1.3B/google/umt5-xxl` 的 tokenizer。下载后在 CPU 上无损转换两个 `.pth` 为 safetensors，写到 loader 原有的 `DiffSynth-Studio/Wan-Series-Converted-Safetensors/` 本地目录；该目录名不再代表网络下载源。保留张量名称、dtype 和数值，不更改模型参数。转换需要 torch/safetensors 和足够主机内存（建议至少 32 GB 可用 RAM）；磁盘同时保留原始与转换文件，建议至少 60 GB 可用空间。现有转换文件必须逐张量匹配，否则报错而不覆盖。
+
+下载进程显式解除 HF_HUB_OFFLINE，不修改父 shell；训练仍离线。HF_ENDPOINT 可继续使用服务器可访问的镜像。之前版本错误地将上游转换仓库作为 HF 仓库访问，可能返回 401/RepositoryNotFound；本次修复不再访问该源。若旧版本失败于解析仓库 revision，通常尚未写 lock，直接重试即可；如提示 lock specification differs，保留并重命名旧 lock 后重试，已有下载文件不必删除。真实大权重转换尚未本地执行，后续 models 阶段继续检查 loader 结构 hash。
 
 官方接口说明：https://huggingface.co/docs/huggingface_hub/v0.29.2/en/guides/download 。基础模型文件目录：https://huggingface.co/Wan-AI/Wan2.2-TI2V-5B/tree/main 。
 
@@ -256,7 +258,6 @@ SIMWAM_KF_OFFLINE=1 bash scripts/model_prepare.sh
 
 下载基础权重后仍需完成 NAVSIM 联合监督训练才能得到 C0；下载和 ActionDiT 转换本身不会产出已训练的驾驶策略。上游 `train_navsim_zero1_torchrun.sh` 使用 DeepSpeed，**不可直接在此 PPU 环境执行**。新增 PPU 环境不安装通用 DeepSpeed。单卡可通过上游 `python scripts/train.py task=navsim_uncond_front_384x672_1e-4 max_steps=1 batch_size=1 num_workers=0 model.mot_checkpoint_mixed_attn=true` 探测监督训练链路，但仍需完整训练资源，且未经真实 PPU 验证；上游默认 val 复用 train，不应将该输出视为独立验证成绩。自训 C0 的多卡 PPU 训练同步、显存方案和独立验证集仍需补充验证，不能把上游脚本当作已适配成功。当前 KF warmup/RL 自身使用显式 all-reduce，不依赖 DeepSpeed。
 
-本次下载源验证状态：已通过网页核对官方 Wan DiT 分片和 tokenizer 目录，转换版仓库采用上游 loader 指定的源；尝试读取其 HF API 清单时网络超时，尚未确认该源在目标服务器可达。下载脚本会在下载大文件之前解析全部仓库 revision，源不可达时失败并保留错误，不会静默替换其他模型。
 
 ## 一键分阶段 debug（建议服务器从这里开始）
 

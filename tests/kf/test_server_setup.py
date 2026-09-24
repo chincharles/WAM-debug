@@ -59,3 +59,25 @@ def test_offline_verify_rejects_modified_file(tmp_path, monkeypatch):
     monkeypatch.setattr(download, 'validate_layout', lambda root: None)
     monkeypatch.setattr(sys, 'argv', ['download_models.py', '--root', str(tmp_path), '--verify'])
     with pytest.raises(ValueError, match='Checksum mismatch'): download.main()
+
+def test_official_common_conversion_preserves_weights(tmp_path):
+    import torch
+    load_file = pytest.importorskip("safetensors.torch").load_file
+    download = load('download_models')
+    src = tmp_path / 'Wan-AI/Wan2.2-TI2V-5B'; src.mkdir(parents=True)
+    expected = {'a': torch.arange(8, dtype=torch.bfloat16).reshape(2, 4)}
+    for stem in ('Wan2.2_VAE', 'models_t5_umt5-xxl-enc-bf16'):
+        torch.save(expected, src / (stem + '.pth'))
+    download.convert_common(tmp_path)
+    download.convert_common(tmp_path)  # existing identical files are accepted
+    target = tmp_path / 'DiffSynth-Studio/Wan-Series-Converted-Safetensors/Wan2.2_VAE.safetensors'
+    actual = load_file(str(target))
+    assert actual['a'].dtype == expected['a'].dtype
+    torch.testing.assert_close(actual['a'], expected['a'], rtol=0, atol=0)
+    torch.save({'a': expected['a'] + 1}, src / 'Wan2.2_VAE.pth')
+    with pytest.raises(ValueError, match='differs'): download.convert_common(tmp_path)
+
+def test_download_sources_are_official_wan():
+    specs = load('download_models').SPECS
+    assert all(repo.startswith('Wan-AI/') for repo in specs)
+    assert 'Wan2.2_VAE.pth' in specs['Wan-AI/Wan2.2-TI2V-5B']
