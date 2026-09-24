@@ -1,0 +1,21 @@
+Status: failed
+Python: /Users/cchuang/Desktop/dds/SimWAM-KF/.venv-kf312/bin/python
+
+environment: failed (exit=1)
+Log: /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_local_traceback/01-environment.log
+Next: 检查当前 Python/厂商 torch 路径、依赖版本和 traceback 中第一个导入错误；PPU 用 install_ppu.py，勿安装根 requirements.txt。
+Retry: bash /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_local_traceback/retry-environment.sh
+Recent output:
+{
+  "status": "failed",
+  "real_models_tested": false,
+  "real_data_tested": false,
+  "python": "3.12.14 (main, Aug 25 2026, 13:50:33) [Clang 22.1.3 ]",
+  "runtime": "cuda",
+  "imports": {
+    "torch": "/Users/cchuang/Desktop/dds/SimWAM-KF/.venv-kf312/lib/python3.12/site-packages/torch/__init__.py"
+  },
+  "checking_module": "torchvision",
+  "error": "ModuleNotFoundError: No module named 'torchvision'",
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/cchuang/Desktop/dds/SimWAM-KF/scripts/kf/check_server.py\", line 56, in main\n    result['imports'][name] = str(importlib.import_module(name).__file__)\n                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/cchuang/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/importlib/__init__.py\", line 90, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1387, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1360, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1324, in _find_and_load_unlocked\nModuleNotFoundError: No module named 'torchvision'\n"
+}

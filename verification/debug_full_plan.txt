@@ -1,0 +1,29 @@
+
+[environment] /Users/cchuang/Desktop/dds/SimWAM-KF/.venv-kf312/bin/python scripts/kf/check_server.py --output /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/environment.json
+Log: /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/01-environment.log
+
+[kernels] /Users/cchuang/Desktop/dds/SimWAM-KF/.venv-kf312/bin/python -m torch.distributed.run --standalone --nproc_per_node 1 scripts/kf/check_server.py --kernels --output /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/kernels.json
+Log: /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/02-kernels.log
+
+[models] /Users/cchuang/Desktop/dds/SimWAM-KF/.venv-kf312/bin/python scripts/kf/check_models.py --kind base --output /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/models.json
+Log: /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/03-models.log
+
+[preflight] /Users/cchuang/Desktop/dds/SimWAM-KF/.venv-kf312/bin/python scripts/kf/preflight.py --stage warmup --output /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/preflight.json
+Log: /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/04-preflight.log
+
+[smoke] /Users/cchuang/Desktop/dds/SimWAM-KF/.venv-kf312/bin/python scripts/kf/smoke.py --output-root /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/smoke
+Log: /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/05-smoke.log
+
+[warmup] bash scripts/kf/warmup.sh --max-steps 1000 --run-dir /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/warmup
+Log: /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/06-warmup.log
+
+[rl_preflight] /Users/cchuang/Desktop/dds/SimWAM-KF/.venv-kf312/bin/python scripts/kf/preflight.py --stage rl --output /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/rl_preflight.json
+Log: /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/07-rl_preflight.log
+
+[matrix] /Users/cchuang/Desktop/dds/SimWAM-KF/.venv-kf312/bin/python scripts/kf/matrix.py --stage pilot --seeds 42 --max-steps 200 --output-root /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/matrix
+Log: /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/08-matrix.log
+
+[summary] /Users/cchuang/Desktop/dds/SimWAM-KF/.venv-kf312/bin/python scripts/kf/summarize.py --runs-root /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/matrix --output-dir /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/summary
+Log: /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/09-summary.log
+
+Report: /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/debug_full_plan/REPORT.txt

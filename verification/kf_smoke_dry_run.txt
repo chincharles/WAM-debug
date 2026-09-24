@@ -1,0 +1,1121 @@
+{"output": "outputs/kf/final_smoke_plan/gpu_regression.json", "atol": 0.02, "rtol": 0.02, "dry_run": true}
+output_dir: outputs/kf/final_smoke_plan/warmup
+batch_size: 1
+num_workers: 0
+lr_scheduler_type: constant
+learning_rate: 0.0001
+lr_warmup_steps: 100
+num_epochs: 1000000
+max_steps: 2
+log_every: 1
+save_every: 100
+eval_every: 100
+gradient_accumulation_steps: 1
+mixed_precision: bf16
+seed: 42
+max_grad_norm: 1.0
+weight_decay: 0.01
+resume: null
+grpo:
+  sample:
+    group_size: 4
+    num_inference_steps: 10
+    infer_shift: null
+    min_std: 0.001
+    randn_clip: 5.0
+    sde_mode: rigorous
+    noise_level: 0.1
+  train:
+    denoising_discount: 0.6
+    adv_clip_lower_quantile: 0.0
+    adv_clip_upper_quantile: 1.0
+    adv_eps: 1.0e-08
+    use_bc_loss: true
+    bc_coeff: 0.1
+    ppo_clip_range: 0.02
+    adv_clip_max: 5.0
+    num_inner_epochs: 4
+    rollout_buffer_batches: 1
+  lora:
+    enabled: true
+    r: 16
+    alpha: 32.0
+    dropout: 0.0
+    target_modules:
+    - q
+    - k
+    - v
+    - o
+  reward:
+    metric_cache_path: /UNSET/NAVSIM_METRIC_CACHE_PATH
+    proposal_time_horizon: 4.0
+    proposal_interval: 0.1
+    model_trajectory_interval: 0.5
+    progress_weight: 10.0
+    ttc_weight: 5.0
+    comfortable_weight: 2.0
+  eval:
+    enabled: false
+    num_batches: 4
+  vis:
+    enabled: false
+    every: 100
+    num_conditions: 2
+    max_samples: 0
+    plot_mode: bev_camera
+    dpi: 150
+wandb:
+  enabled: false
+  workspace: null
+  project: simple-wam
+  name: grpo
+  group: null
+  mode: online
+data:
+  train:
+    _target_: simwam.datasets.navsim.kf_validation.KFNavSimDataset
+    navsim_log_path: /UNSET/NAVSIM_LOG_PATH
+    sensor_blobs_path: /UNSET/NAVSIM_SENSOR_BLOBS_PATH
+    scene_filter: /Users/cchuang/Desktop/dds/SimWAM-KF/navsim/navsim/planning/script/config/common/train_test_split/scene_filter/navtrain.yaml
+    split_config_path: /Users/cchuang/Desktop/dds/SimWAM-KF/navsim/navsim/planning/script/config/training/default_train_val_test_log_split.yaml
+    split_logs_key: train_logs
+    num_frames: 9
+    future_action_horizon: 8
+    frame_stride: 1
+    video_frame_mode: current_plus_future
+    video_size:
+    - 384
+    - 672
+    camera_layout: front
+    is_training_set: true
+    text_embedding_cache_dir: ./data/text_embeds_cache/navsim
+    context_len: 256
+    action_dim: 3
+    state_dim: 8
+    use_dynamic_prompt: false
+    trajectory_mode: absolute
+    proprio_dim: 8
+    normalize_action: true
+    pretrained_norm_stats: ./data/navsim_dataset_stats.json
+    stats_cache_path: ./data/navsim_dataset_stats.json
+    manifest_path: manifests/train.jsonl
+model:
+  _target_: simwam.runtime_kf.create_simwam_kf_grpo
+  model_id: Wan-AI/Wan2.2-TI2V-5B
+  tokenizer_model_id: Wan-AI/Wan2.1-T2V-1.3B
+  tokenizer_max_len: 128
+  load_text_encoder: false
+  proprio_dim: 8
+  redirect_common_files: true
+  mot_checkpoint_mixed_attn: false
+  action_dit_pretrained_path: null
+  skip_dit_load_from_pretrain: true
+  video_dit_config:
+    has_image_input: false
+    patch_size:
+    - 1
+    - 2
+    - 2
+    in_dim: 48
+    hidden_dim: 3072
+    ffn_dim: 14336
+    freq_dim: 256
+    text_dim: 4096
+    out_dim: 48
+    num_heads: 24
+    attn_head_dim: 128
+    num_layers: 30
+    eps: 1.0e-06
+    seperated_timestep: true
+    require_clip_embedding: false
+    require_vae_embedding: false
+    fuse_vae_embedding_in_latents: true
+    use_gradient_checkpointing: false
+    video_attention_mask_mode: first_frame_causal
+    action_conditioned: false
+    action_dim: 3
+    action_group_causal_mask_mode: group_diagonal
+  action_dit_config:
+    action_dim: 3
+    hidden_dim: 1024
+    ffn_dim: 4096
+    num_heads: 24
+    attn_head_dim: 128
+    num_layers: 30
+    text_dim: 4096
+    freq_dim: 256
+    eps: 1.0e-06
+    use_gradient_checkpointing: false
+  video_scheduler:
+    train_shift: 5.0
+    infer_shift: 5.0
+    num_train_timesteps: 1000
+  action_scheduler:
+    train_shift: 5.0
+    infer_shift: 5.0
+    num_train_timesteps: 1000
+    prediction_type: velocity
+    sigma_clamp_min: 0.1
+  loss:
+    lambda_action: 1.0
+  checkpoint_path: null
+  kf:
+    enabled: true
+    future_frames: 8
+    generation:
+      num_inference_steps: 20
+      microbatch_size: 1
+      independent_per_candidate: true
+      decode_rgb: false
+      cache_across_rollouts: false
+    adapter:
+      enabled: true
+      inner_dim: 256
+      num_heads: 8
+      layer_indices:
+      - 9
+      - 19
+      - 29
+      gate_init: 0.0
+      dropout: 0.0
+      train_during_rl: false
+    warmup:
+      future_frames: 8
+      learning_rate: 0.0001
+      max_steps: 1000
+    bc_future_frames: 0
+    logprob_mode: upstream_compat
+    strict_metric_cache: true
+    require_il_checkpoint: true
+    require_kf_checkpoint_for_rl: true
+kf:
+  enabled: true
+  future_frames: 8
+  generation:
+    num_inference_steps: 20
+    microbatch_size: 1
+    independent_per_candidate: true
+    decode_rgb: false
+    cache_across_rollouts: false
+  adapter:
+    enabled: true
+    inner_dim: 256
+    num_heads: 8
+    layer_indices:
+    - 9
+    - 19
+    - 29
+    gate_init: 0.0
+    dropout: 0.0
+    train_during_rl: false
+  warmup:
+    future_frames: 8
+    learning_rate: 0.0001
+    max_steps: 1000
+  bc_future_frames: 0
+  logprob_mode: upstream_compat
+  strict_metric_cache: true
+  require_il_checkpoint: true
+  require_kf_checkpoint_for_rl: true
+evaluation:
+  future_frames: 0
+  candidate_count: 1
+  action_steps: 10
+  deterministic_ode: true
+
+output_dir: outputs/kf/final_smoke_plan/matrix/k4_f0_seed42
+batch_size: 1
+num_workers: 0
+lr_scheduler_type: constant
+learning_rate: 5.0e-05
+lr_warmup_steps: 100
+num_epochs: 1000000
+max_steps: 2
+log_every: 1
+save_every: 40
+eval_every: 100
+gradient_accumulation_steps: 1
+mixed_precision: bf16
+seed: 42
+max_grad_norm: 1.0
+weight_decay: 0.01
+resume: null
+grpo:
+  sample:
+    group_size: 4
+    num_inference_steps: 10
+    infer_shift: null
+    min_std: 0.001
+    randn_clip: 5.0
+    sde_mode: rigorous
+    noise_level: 0.1
+  train:
+    denoising_discount: 0.6
+    adv_clip_lower_quantile: 0.0
+    adv_clip_upper_quantile: 1.0
+    adv_eps: 1.0e-08
+    use_bc_loss: true
+    bc_coeff: 0.1
+    ppo_clip_range: 0.02
+    adv_clip_max: 5.0
+    num_inner_epochs: 1
+    rollout_buffer_batches: 1
+  lora:
+    enabled: true
+    r: 16
+    alpha: 32.0
+    dropout: 0.0
+    target_modules:
+    - q
+    - k
+    - v
+    - o
+  reward:
+    metric_cache_path: /UNSET/NAVSIM_METRIC_CACHE_PATH
+    proposal_time_horizon: 4.0
+    proposal_interval: 0.1
+    model_trajectory_interval: 0.5
+    progress_weight: 10.0
+    ttc_weight: 5.0
+    comfortable_weight: 2.0
+  eval:
+    enabled: false
+    num_batches: 4
+  vis:
+    enabled: false
+    every: 100
+    num_conditions: 2
+    max_samples: 0
+    plot_mode: bev_camera
+    dpi: 150
+wandb:
+  enabled: false
+  workspace: null
+  project: simple-wam
+  name: grpo
+  group: null
+  mode: online
+data:
+  train:
+    _target_: simwam.datasets.navsim.kf_validation.KFNavSimDataset
+    navsim_log_path: /UNSET/NAVSIM_LOG_PATH
+    sensor_blobs_path: /UNSET/NAVSIM_SENSOR_BLOBS_PATH
+    scene_filter: /Users/cchuang/Desktop/dds/SimWAM-KF/navsim/navsim/planning/script/config/common/train_test_split/scene_filter/navtrain.yaml
+    split_config_path: /Users/cchuang/Desktop/dds/SimWAM-KF/navsim/navsim/planning/script/config/training/default_train_val_test_log_split.yaml
+    split_logs_key: train_logs
+    num_frames: 9
+    future_action_horizon: 8
+    frame_stride: 1
+    video_frame_mode: current_plus_future
+    video_size:
+    - 384
+    - 672
+    camera_layout: front
+    is_training_set: true
+    text_embedding_cache_dir: ./data/text_embeds_cache/navsim
+    context_len: 256
+    action_dim: 3
+    state_dim: 8
+    use_dynamic_prompt: false
+    trajectory_mode: absolute
+    proprio_dim: 8
+    normalize_action: true
+    pretrained_norm_stats: ./data/navsim_dataset_stats.json
+    stats_cache_path: ./data/navsim_dataset_stats.json
+    manifest_path: manifests/train.jsonl
+model:
+  _target_: simwam.runtime_kf.create_simwam_kf_grpo
+  model_id: Wan-AI/Wan2.2-TI2V-5B
+  tokenizer_model_id: Wan-AI/Wan2.1-T2V-1.3B
+  tokenizer_max_len: 128
+  load_text_encoder: false
+  proprio_dim: 8
+  redirect_common_files: true
+  mot_checkpoint_mixed_attn: false
+  action_dit_pretrained_path: null
+  skip_dit_load_from_pretrain: true
+  video_dit_config:
+    has_image_input: false
+    patch_size:
+    - 1
+    - 2
+    - 2
+    in_dim: 48
+    hidden_dim: 3072
+    ffn_dim: 14336
+    freq_dim: 256
+    text_dim: 4096
+    out_dim: 48
+    num_heads: 24
+    attn_head_dim: 128
+    num_layers: 30
+    eps: 1.0e-06
+    seperated_timestep: true
+    require_clip_embedding: false
+    require_vae_embedding: false
+    fuse_vae_embedding_in_latents: true
+    use_gradient_checkpointing: false
+    video_attention_mask_mode: first_frame_causal
+    action_conditioned: false
+    action_dim: 3
+    action_group_causal_mask_mode: group_diagonal
+  action_dit_config:
+    action_dim: 3
+    hidden_dim: 1024
+    ffn_dim: 4096
+    num_heads: 24
+    attn_head_dim: 128
+    num_layers: 30
+    text_dim: 4096
+    freq_dim: 256
+    eps: 1.0e-06
+    use_gradient_checkpointing: false
+  video_scheduler:
+    train_shift: 5.0
+    infer_shift: 5.0
+    num_train_timesteps: 1000
+  action_scheduler:
+    train_shift: 5.0
+    infer_shift: 5.0
+    num_train_timesteps: 1000
+    prediction_type: velocity
+    sigma_clamp_min: 0.1
+  loss:
+    lambda_action: 1.0
+  checkpoint_path: /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/final_smoke_plan/warmup/export/kf_policy.pt
+  kf:
+    enabled: true
+    future_frames: 0
+    generation:
+      num_inference_steps: 20
+      microbatch_size: 1
+      independent_per_candidate: true
+      decode_rgb: false
+      cache_across_rollouts: false
+    adapter:
+      enabled: true
+      inner_dim: 256
+      num_heads: 8
+      layer_indices:
+      - 9
+      - 19
+      - 29
+      gate_init: 0.0
+      dropout: 0.0
+      train_during_rl: false
+    warmup:
+      future_frames: 8
+      learning_rate: 0.0001
+      max_steps: 1000
+    bc_future_frames: 0
+    logprob_mode: upstream_compat
+    strict_metric_cache: true
+    require_il_checkpoint: true
+    require_kf_checkpoint_for_rl: true
+kf:
+  enabled: true
+  future_frames: 0
+  generation:
+    num_inference_steps: 20
+    microbatch_size: 1
+    independent_per_candidate: true
+    decode_rgb: false
+    cache_across_rollouts: false
+  adapter:
+    enabled: true
+    inner_dim: 256
+    num_heads: 8
+    layer_indices:
+    - 9
+    - 19
+    - 29
+    gate_init: 0.0
+    dropout: 0.0
+    train_during_rl: false
+  warmup:
+    future_frames: 8
+    learning_rate: 0.0001
+    max_steps: 1000
+  bc_future_frames: 0
+  logprob_mode: upstream_compat
+  strict_metric_cache: true
+  require_il_checkpoint: true
+  require_kf_checkpoint_for_rl: true
+evaluation:
+  future_frames: 0
+  candidate_count: 1
+  action_steps: 10
+  deterministic_ode: true
+
+output_dir: outputs/kf/final_smoke_plan/matrix/k8_f0_seed42
+batch_size: 1
+num_workers: 0
+lr_scheduler_type: constant
+learning_rate: 5.0e-05
+lr_warmup_steps: 100
+num_epochs: 1000000
+max_steps: 2
+log_every: 1
+save_every: 40
+eval_every: 100
+gradient_accumulation_steps: 1
+mixed_precision: bf16
+seed: 42
+max_grad_norm: 1.0
+weight_decay: 0.01
+resume: null
+grpo:
+  sample:
+    group_size: 8
+    num_inference_steps: 10
+    infer_shift: null
+    min_std: 0.001
+    randn_clip: 5.0
+    sde_mode: rigorous
+    noise_level: 0.1
+  train:
+    denoising_discount: 0.6
+    adv_clip_lower_quantile: 0.0
+    adv_clip_upper_quantile: 1.0
+    adv_eps: 1.0e-08
+    use_bc_loss: true
+    bc_coeff: 0.1
+    ppo_clip_range: 0.02
+    adv_clip_max: 5.0
+    num_inner_epochs: 1
+    rollout_buffer_batches: 1
+  lora:
+    enabled: true
+    r: 16
+    alpha: 32.0
+    dropout: 0.0
+    target_modules:
+    - q
+    - k
+    - v
+    - o
+  reward:
+    metric_cache_path: /UNSET/NAVSIM_METRIC_CACHE_PATH
+    proposal_time_horizon: 4.0
+    proposal_interval: 0.1
+    model_trajectory_interval: 0.5
+    progress_weight: 10.0
+    ttc_weight: 5.0
+    comfortable_weight: 2.0
+  eval:
+    enabled: false
+    num_batches: 4
+  vis:
+    enabled: false
+    every: 100
+    num_conditions: 2
+    max_samples: 0
+    plot_mode: bev_camera
+    dpi: 150
+wandb:
+  enabled: false
+  workspace: null
+  project: simple-wam
+  name: grpo
+  group: null
+  mode: online
+data:
+  train:
+    _target_: simwam.datasets.navsim.kf_validation.KFNavSimDataset
+    navsim_log_path: /UNSET/NAVSIM_LOG_PATH
+    sensor_blobs_path: /UNSET/NAVSIM_SENSOR_BLOBS_PATH
+    scene_filter: /Users/cchuang/Desktop/dds/SimWAM-KF/navsim/navsim/planning/script/config/common/train_test_split/scene_filter/navtrain.yaml
+    split_config_path: /Users/cchuang/Desktop/dds/SimWAM-KF/navsim/navsim/planning/script/config/training/default_train_val_test_log_split.yaml
+    split_logs_key: train_logs
+    num_frames: 9
+    future_action_horizon: 8
+    frame_stride: 1
+    video_frame_mode: current_plus_future
+    video_size:
+    - 384
+    - 672
+    camera_layout: front
+    is_training_set: true
+    text_embedding_cache_dir: ./data/text_embeds_cache/navsim
+    context_len: 256
+    action_dim: 3
+    state_dim: 8
+    use_dynamic_prompt: false
+    trajectory_mode: absolute
+    proprio_dim: 8
+    normalize_action: true
+    pretrained_norm_stats: ./data/navsim_dataset_stats.json
+    stats_cache_path: ./data/navsim_dataset_stats.json
+    manifest_path: manifests/train.jsonl
+model:
+  _target_: simwam.runtime_kf.create_simwam_kf_grpo
+  model_id: Wan-AI/Wan2.2-TI2V-5B
+  tokenizer_model_id: Wan-AI/Wan2.1-T2V-1.3B
+  tokenizer_max_len: 128
+  load_text_encoder: false
+  proprio_dim: 8
+  redirect_common_files: true
+  mot_checkpoint_mixed_attn: false
+  action_dit_pretrained_path: null
+  skip_dit_load_from_pretrain: true
+  video_dit_config:
+    has_image_input: false
+    patch_size:
+    - 1
+    - 2
+    - 2
+    in_dim: 48
+    hidden_dim: 3072
+    ffn_dim: 14336
+    freq_dim: 256
+    text_dim: 4096
+    out_dim: 48
+    num_heads: 24
+    attn_head_dim: 128
+    num_layers: 30
+    eps: 1.0e-06
+    seperated_timestep: true
+    require_clip_embedding: false
+    require_vae_embedding: false
+    fuse_vae_embedding_in_latents: true
+    use_gradient_checkpointing: false
+    video_attention_mask_mode: first_frame_causal
+    action_conditioned: false
+    action_dim: 3
+    action_group_causal_mask_mode: group_diagonal
+  action_dit_config:
+    action_dim: 3
+    hidden_dim: 1024
+    ffn_dim: 4096
+    num_heads: 24
+    attn_head_dim: 128
+    num_layers: 30
+    text_dim: 4096
+    freq_dim: 256
+    eps: 1.0e-06
+    use_gradient_checkpointing: false
+  video_scheduler:
+    train_shift: 5.0
+    infer_shift: 5.0
+    num_train_timesteps: 1000
+  action_scheduler:
+    train_shift: 5.0
+    infer_shift: 5.0
+    num_train_timesteps: 1000
+    prediction_type: velocity
+    sigma_clamp_min: 0.1
+  loss:
+    lambda_action: 1.0
+  checkpoint_path: /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/final_smoke_plan/warmup/export/kf_policy.pt
+  kf:
+    enabled: true
+    future_frames: 0
+    generation:
+      num_inference_steps: 20
+      microbatch_size: 1
+      independent_per_candidate: true
+      decode_rgb: false
+      cache_across_rollouts: false
+    adapter:
+      enabled: true
+      inner_dim: 256
+      num_heads: 8
+      layer_indices:
+      - 9
+      - 19
+      - 29
+      gate_init: 0.0
+      dropout: 0.0
+      train_during_rl: false
+    warmup:
+      future_frames: 8
+      learning_rate: 0.0001
+      max_steps: 1000
+    bc_future_frames: 0
+    logprob_mode: upstream_compat
+    strict_metric_cache: true
+    require_il_checkpoint: true
+    require_kf_checkpoint_for_rl: true
+kf:
+  enabled: true
+  future_frames: 0
+  generation:
+    num_inference_steps: 20
+    microbatch_size: 1
+    independent_per_candidate: true
+    decode_rgb: false
+    cache_across_rollouts: false
+  adapter:
+    enabled: true
+    inner_dim: 256
+    num_heads: 8
+    layer_indices:
+    - 9
+    - 19
+    - 29
+    gate_init: 0.0
+    dropout: 0.0
+    train_during_rl: false
+  warmup:
+    future_frames: 8
+    learning_rate: 0.0001
+    max_steps: 1000
+  bc_future_frames: 0
+  logprob_mode: upstream_compat
+  strict_metric_cache: true
+  require_il_checkpoint: true
+  require_kf_checkpoint_for_rl: true
+evaluation:
+  future_frames: 0
+  candidate_count: 1
+  action_steps: 10
+  deterministic_ode: true
+
+output_dir: outputs/kf/final_smoke_plan/matrix/k4_f8_seed42
+batch_size: 1
+num_workers: 0
+lr_scheduler_type: constant
+learning_rate: 5.0e-05
+lr_warmup_steps: 100
+num_epochs: 1000000
+max_steps: 2
+log_every: 1
+save_every: 40
+eval_every: 100
+gradient_accumulation_steps: 1
+mixed_precision: bf16
+seed: 42
+max_grad_norm: 1.0
+weight_decay: 0.01
+resume: null
+grpo:
+  sample:
+    group_size: 4
+    num_inference_steps: 10
+    infer_shift: null
+    min_std: 0.001
+    randn_clip: 5.0
+    sde_mode: rigorous
+    noise_level: 0.1
+  train:
+    denoising_discount: 0.6
+    adv_clip_lower_quantile: 0.0
+    adv_clip_upper_quantile: 1.0
+    adv_eps: 1.0e-08
+    use_bc_loss: true
+    bc_coeff: 0.1
+    ppo_clip_range: 0.02
+    adv_clip_max: 5.0
+    num_inner_epochs: 1
+    rollout_buffer_batches: 1
+  lora:
+    enabled: true
+    r: 16
+    alpha: 32.0
+    dropout: 0.0
+    target_modules:
+    - q
+    - k
+    - v
+    - o
+  reward:
+    metric_cache_path: /UNSET/NAVSIM_METRIC_CACHE_PATH
+    proposal_time_horizon: 4.0
+    proposal_interval: 0.1
+    model_trajectory_interval: 0.5
+    progress_weight: 10.0
+    ttc_weight: 5.0
+    comfortable_weight: 2.0
+  eval:
+    enabled: false
+    num_batches: 4
+  vis:
+    enabled: false
+    every: 100
+    num_conditions: 2
+    max_samples: 0
+    plot_mode: bev_camera
+    dpi: 150
+wandb:
+  enabled: false
+  workspace: null
+  project: simple-wam
+  name: grpo
+  group: null
+  mode: online
+data:
+  train:
+    _target_: simwam.datasets.navsim.kf_validation.KFNavSimDataset
+    navsim_log_path: /UNSET/NAVSIM_LOG_PATH
+    sensor_blobs_path: /UNSET/NAVSIM_SENSOR_BLOBS_PATH
+    scene_filter: /Users/cchuang/Desktop/dds/SimWAM-KF/navsim/navsim/planning/script/config/common/train_test_split/scene_filter/navtrain.yaml
+    split_config_path: /Users/cchuang/Desktop/dds/SimWAM-KF/navsim/navsim/planning/script/config/training/default_train_val_test_log_split.yaml
+    split_logs_key: train_logs
+    num_frames: 9
+    future_action_horizon: 8
+    frame_stride: 1
+    video_frame_mode: current_plus_future
+    video_size:
+    - 384
+    - 672
+    camera_layout: front
+    is_training_set: true
+    text_embedding_cache_dir: ./data/text_embeds_cache/navsim
+    context_len: 256
+    action_dim: 3
+    state_dim: 8
+    use_dynamic_prompt: false
+    trajectory_mode: absolute
+    proprio_dim: 8
+    normalize_action: true
+    pretrained_norm_stats: ./data/navsim_dataset_stats.json
+    stats_cache_path: ./data/navsim_dataset_stats.json
+    manifest_path: manifests/train.jsonl
+model:
+  _target_: simwam.runtime_kf.create_simwam_kf_grpo
+  model_id: Wan-AI/Wan2.2-TI2V-5B
+  tokenizer_model_id: Wan-AI/Wan2.1-T2V-1.3B
+  tokenizer_max_len: 128
+  load_text_encoder: false
+  proprio_dim: 8
+  redirect_common_files: true
+  mot_checkpoint_mixed_attn: false
+  action_dit_pretrained_path: null
+  skip_dit_load_from_pretrain: true
+  video_dit_config:
+    has_image_input: false
+    patch_size:
+    - 1
+    - 2
+    - 2
+    in_dim: 48
+    hidden_dim: 3072
+    ffn_dim: 14336
+    freq_dim: 256
+    text_dim: 4096
+    out_dim: 48
+    num_heads: 24
+    attn_head_dim: 128
+    num_layers: 30
+    eps: 1.0e-06
+    seperated_timestep: true
+    require_clip_embedding: false
+    require_vae_embedding: false
+    fuse_vae_embedding_in_latents: true
+    use_gradient_checkpointing: false
+    video_attention_mask_mode: first_frame_causal
+    action_conditioned: false
+    action_dim: 3
+    action_group_causal_mask_mode: group_diagonal
+  action_dit_config:
+    action_dim: 3
+    hidden_dim: 1024
+    ffn_dim: 4096
+    num_heads: 24
+    attn_head_dim: 128
+    num_layers: 30
+    text_dim: 4096
+    freq_dim: 256
+    eps: 1.0e-06
+    use_gradient_checkpointing: false
+  video_scheduler:
+    train_shift: 5.0
+    infer_shift: 5.0
+    num_train_timesteps: 1000
+  action_scheduler:
+    train_shift: 5.0
+    infer_shift: 5.0
+    num_train_timesteps: 1000
+    prediction_type: velocity
+    sigma_clamp_min: 0.1
+  loss:
+    lambda_action: 1.0
+  checkpoint_path: /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/final_smoke_plan/warmup/export/kf_policy.pt
+  kf:
+    enabled: true
+    future_frames: 8
+    generation:
+      num_inference_steps: 20
+      microbatch_size: 1
+      independent_per_candidate: true
+      decode_rgb: false
+      cache_across_rollouts: false
+    adapter:
+      enabled: true
+      inner_dim: 256
+      num_heads: 8
+      layer_indices:
+      - 9
+      - 19
+      - 29
+      gate_init: 0.0
+      dropout: 0.0
+      train_during_rl: false
+    warmup:
+      future_frames: 8
+      learning_rate: 0.0001
+      max_steps: 1000
+    bc_future_frames: 0
+    logprob_mode: upstream_compat
+    strict_metric_cache: true
+    require_il_checkpoint: true
+    require_kf_checkpoint_for_rl: true
+kf:
+  enabled: true
+  future_frames: 8
+  generation:
+    num_inference_steps: 20
+    microbatch_size: 1
+    independent_per_candidate: true
+    decode_rgb: false
+    cache_across_rollouts: false
+  adapter:
+    enabled: true
+    inner_dim: 256
+    num_heads: 8
+    layer_indices:
+    - 9
+    - 19
+    - 29
+    gate_init: 0.0
+    dropout: 0.0
+    train_during_rl: false
+  warmup:
+    future_frames: 8
+    learning_rate: 0.0001
+    max_steps: 1000
+  bc_future_frames: 0
+  logprob_mode: upstream_compat
+  strict_metric_cache: true
+  require_il_checkpoint: true
+  require_kf_checkpoint_for_rl: true
+evaluation:
+  future_frames: 0
+  candidate_count: 1
+  action_steps: 10
+  deterministic_ode: true
+
+output_dir: outputs/kf/final_smoke_plan/matrix/k8_f8_seed42
+batch_size: 1
+num_workers: 0
+lr_scheduler_type: constant
+learning_rate: 5.0e-05
+lr_warmup_steps: 100
+num_epochs: 1000000
+max_steps: 2
+log_every: 1
+save_every: 40
+eval_every: 100
+gradient_accumulation_steps: 1
+mixed_precision: bf16
+seed: 42
+max_grad_norm: 1.0
+weight_decay: 0.01
+resume: null
+grpo:
+  sample:
+    group_size: 8
+    num_inference_steps: 10
+    infer_shift: null
+    min_std: 0.001
+    randn_clip: 5.0
+    sde_mode: rigorous
+    noise_level: 0.1
+  train:
+    denoising_discount: 0.6
+    adv_clip_lower_quantile: 0.0
+    adv_clip_upper_quantile: 1.0
+    adv_eps: 1.0e-08
+    use_bc_loss: true
+    bc_coeff: 0.1
+    ppo_clip_range: 0.02
+    adv_clip_max: 5.0
+    num_inner_epochs: 1
+    rollout_buffer_batches: 1
+  lora:
+    enabled: true
+    r: 16
+    alpha: 32.0
+    dropout: 0.0
+    target_modules:
+    - q
+    - k
+    - v
+    - o
+  reward:
+    metric_cache_path: /UNSET/NAVSIM_METRIC_CACHE_PATH
+    proposal_time_horizon: 4.0
+    proposal_interval: 0.1
+    model_trajectory_interval: 0.5
+    progress_weight: 10.0
+    ttc_weight: 5.0
+    comfortable_weight: 2.0
+  eval:
+    enabled: false
+    num_batches: 4
+  vis:
+    enabled: false
+    every: 100
+    num_conditions: 2
+    max_samples: 0
+    plot_mode: bev_camera
+    dpi: 150
+wandb:
+  enabled: false
+  workspace: null
+  project: simple-wam
+  name: grpo
+  group: null
+  mode: online
+data:
+  train:
+    _target_: simwam.datasets.navsim.kf_validation.KFNavSimDataset
+    navsim_log_path: /UNSET/NAVSIM_LOG_PATH
+    sensor_blobs_path: /UNSET/NAVSIM_SENSOR_BLOBS_PATH
+    scene_filter: /Users/cchuang/Desktop/dds/SimWAM-KF/navsim/navsim/planning/script/config/common/train_test_split/scene_filter/navtrain.yaml
+    split_config_path: /Users/cchuang/Desktop/dds/SimWAM-KF/navsim/navsim/planning/script/config/training/default_train_val_test_log_split.yaml
+    split_logs_key: train_logs
+    num_frames: 9
+    future_action_horizon: 8
+    frame_stride: 1
+    video_frame_mode: current_plus_future
+    video_size:
+    - 384
+    - 672
+    camera_layout: front
+    is_training_set: true
+    text_embedding_cache_dir: ./data/text_embeds_cache/navsim
+    context_len: 256
+    action_dim: 3
+    state_dim: 8
+    use_dynamic_prompt: false
+    trajectory_mode: absolute
+    proprio_dim: 8
+    normalize_action: true
+    pretrained_norm_stats: ./data/navsim_dataset_stats.json
+    stats_cache_path: ./data/navsim_dataset_stats.json
+    manifest_path: manifests/train.jsonl
+model:
+  _target_: simwam.runtime_kf.create_simwam_kf_grpo
+  model_id: Wan-AI/Wan2.2-TI2V-5B
+  tokenizer_model_id: Wan-AI/Wan2.1-T2V-1.3B
+  tokenizer_max_len: 128
+  load_text_encoder: false
+  proprio_dim: 8
+  redirect_common_files: true
+  mot_checkpoint_mixed_attn: false
+  action_dit_pretrained_path: null
+  skip_dit_load_from_pretrain: true
+  video_dit_config:
+    has_image_input: false
+    patch_size:
+    - 1
+    - 2
+    - 2
+    in_dim: 48
+    hidden_dim: 3072
+    ffn_dim: 14336
+    freq_dim: 256
+    text_dim: 4096
+    out_dim: 48
+    num_heads: 24
+    attn_head_dim: 128
+    num_layers: 30
+    eps: 1.0e-06
+    seperated_timestep: true
+    require_clip_embedding: false
+    require_vae_embedding: false
+    fuse_vae_embedding_in_latents: true
+    use_gradient_checkpointing: false
+    video_attention_mask_mode: first_frame_causal
+    action_conditioned: false
+    action_dim: 3
+    action_group_causal_mask_mode: group_diagonal
+  action_dit_config:
+    action_dim: 3
+    hidden_dim: 1024
+    ffn_dim: 4096
+    num_heads: 24
+    attn_head_dim: 128
+    num_layers: 30
+    text_dim: 4096
+    freq_dim: 256
+    eps: 1.0e-06
+    use_gradient_checkpointing: false
+  video_scheduler:
+    train_shift: 5.0
+    infer_shift: 5.0
+    num_train_timesteps: 1000
+  action_scheduler:
+    train_shift: 5.0
+    infer_shift: 5.0
+    num_train_timesteps: 1000
+    prediction_type: velocity
+    sigma_clamp_min: 0.1
+  loss:
+    lambda_action: 1.0
+  checkpoint_path: /Users/cchuang/Desktop/dds/SimWAM-KF/outputs/kf/final_smoke_plan/warmup/export/kf_policy.pt
+  kf:
+    enabled: true
+    future_frames: 8
+    generation:
+      num_inference_steps: 20
+      microbatch_size: 1
+      independent_per_candidate: true
+      decode_rgb: false
+      cache_across_rollouts: false
+    adapter:
+      enabled: true
+      inner_dim: 256
+      num_heads: 8
+      layer_indices:
+      - 9
+      - 19
+      - 29
+      gate_init: 0.0
+      dropout: 0.0
+      train_during_rl: false
+    warmup:
+      future_frames: 8
+      learning_rate: 0.0001
+      max_steps: 1000
+    bc_future_frames: 0
+    logprob_mode: upstream_compat
+    strict_metric_cache: true
+    require_il_checkpoint: true
+    require_kf_checkpoint_for_rl: true
+kf:
+  enabled: true
+  future_frames: 8
+  generation:
+    num_inference_steps: 20
+    microbatch_size: 1
+    independent_per_candidate: true
+    decode_rgb: false
+    cache_across_rollouts: false
+  adapter:
+    enabled: true
+    inner_dim: 256
+    num_heads: 8
+    layer_indices:
+    - 9
+    - 19
+    - 29
+    gate_init: 0.0
+    dropout: 0.0
+    train_during_rl: false
+  warmup:
+    future_frames: 8
+    learning_rate: 0.0001
+    max_steps: 1000
+  bc_future_frames: 0
+  logprob_mode: upstream_compat
+  strict_metric_cache: true
+  require_il_checkpoint: true
+  require_kf_checkpoint_for_rl: true
+evaluation:
+  future_frames: 0
+  candidate_count: 1
+  action_steps: 10
+  deterministic_ode: true
+

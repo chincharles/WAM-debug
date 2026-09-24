@@ -1,0 +1,59 @@
+# @package _global_
+defaults:
+  - navsim_grpo_action_pdm_384x672_flowgrpo_lora
+  - _self_
+model:
+  _target_: simwam.runtime_kf.create_simwam_kf_grpo
+  kf: ${kf}
+  skip_dit_load_from_pretrain: true
+  action_dit_pretrained_path: null
+  checkpoint_path: ${oc.env:SIMWAM_KF_CHECKPOINT,null}
+kf:
+  enabled: true
+  future_frames: 0
+  generation:
+    num_inference_steps: 20
+    microbatch_size: 1
+    independent_per_candidate: true
+    decode_rgb: false
+    cache_across_rollouts: false
+  adapter:
+    enabled: true
+    inner_dim: 256
+    num_heads: 8
+    layer_indices: [9, 19, 29]
+    gate_init: 0.0
+    dropout: 0.0
+    train_during_rl: false
+  warmup:
+    future_frames: 8
+    learning_rate: 1.0e-4
+    max_steps: 1000
+  bc_future_frames: 0
+  logprob_mode: upstream_compat
+  strict_metric_cache: true
+  require_il_checkpoint: true
+  require_kf_checkpoint_for_rl: true
+evaluation:
+  future_frames: 0
+  candidate_count: 1
+  action_steps: 10
+  deterministic_ode: true
+data:
+  train:
+    _target_: simwam.datasets.navsim.kf_validation.KFNavSimDataset
+    manifest_path: ${oc.env:KF_TRAIN_MANIFEST,manifests/train.jsonl}
+    scene_filter: ${oc.env:NAVSIM_DEVKIT_ROOT}/navsim/planning/script/config/common/train_test_split/scene_filter/navtrain.yaml
+    video_size: [384,672]
+grpo:
+  sample:
+    group_size: 4
+    num_inference_steps: 10
+  eval:
+    enabled: false
+  vis:
+    enabled: false
+max_steps: 200
+save_every: 40
+log_every: 1
+num_workers: 0

@@ -1,0 +1,23 @@
+{
+  "source_project": "/Users/cchuang/Desktop/cccs/VLA-RFT-navsim",
+  "source_files": [
+    "scripts/navsim/ppu_environment.py",
+    "configs/navsim/requirements-ppu.txt",
+    "configs/navsim/ppu_compat/sitecustomize.py",
+    "docs/navsim/local-validation/ppu-adaptation-checks.json"
+  ],
+  "target_profile": {
+    "device": "PPU-ZW810E",
+    "python": "3.12",
+    "torch": "vendor 2.6.0",
+    "torchvision": "vendor 0.21.0",
+    "nuplan_commit": "ce3c323af01c0d7ec5672f7832ef53f9c679aab0"
+  },
+  "actual_server_install_executed": false,
+  "actual_model_download_executed": false,
+  "actual_ppu_kernels_executed": false,
+  "hf_converted_repo_metadata_probe": "network timeout; not verified",
+  "local_import_probe": "expected failure: CPU test environment lacks torchvision; see server_local_import_check.json",
+  "legacy_deepspeed_launcher_guard": "tested; exit 2 on SIMWAM_RUNTIME=ppu",
+  "model_plan": "executed offline; no files downloaded"
+}

@@ -1,0 +1,29 @@
+{
+  "status": "failed",
+  "errors": [
+    "SIMWAM_IL_CHECKPOINT: required path missing: <unset>",
+    "NAVSIM_LOG_PATH: required path missing: <unset>",
+    "NAVSIM_SENSOR_BLOBS_PATH: required path missing: <unset>",
+    "NAVSIM_METRIC_CACHE_PATH: required path missing: <unset>",
+    "NAVSIM_VAL_METRIC_CACHE_PATH: required path missing: <unset>",
+    "NAVSIM_TEXT_EMBED_CACHE: required path missing: <unset>",
+    "NAVSIM_STATS_PATH: required path missing: <unset>",
+    "NUPLAN_MAPS_ROOT: required path missing: <unset>",
+    "DIFFSYNTH_MODEL_BASE_PATH: required path missing: <unset>",
+    "KF_TRAIN_MANIFEST: required path missing: <unset>",
+    "KF_VAL_MANIFEST: required path missing: <unset>",
+    "NUPLAN_MAP_VERSION must be nuplan-maps-v1.0",
+    "Missing dependency: torchvision",
+    "Missing dependency: transformers",
+    "Missing dependency: accelerate",
+    "Missing dependency: nuplan",
+    "Missing dependency: safetensors",
+    "Missing dependency: av",
+    "train manifest: 'KF_TRAIN_MANIFEST'",
+    "val manifest: 'KF_VAL_MANIFEST'",
+    "Required VAE: /missing/DiffSynth-Studio/Wan-Series-Converted-Safetensors/Wan2.2_VAE.safetensors; C0 supplies video/action DiT, cached text supplies T5"
+  ],
+  "checks": {
+    "splits": {}
+  }
+}

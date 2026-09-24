@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - navsim_kf_grpo
+  - _self_
+model:
+  checkpoint_path: ${oc.env:SIMWAM_IL_CHECKPOINT,null}
+kf:
+  future_frames: 8
+learning_rate: ${kf.warmup.learning_rate}
+max_steps: ${kf.warmup.max_steps}
+save_every: 100
